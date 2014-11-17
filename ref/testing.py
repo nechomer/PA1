@@ -14,7 +14,7 @@ def remove_files(directory, pattern):
 def main():
     if os.path.exists(os.path.join(os.getcwd(), "src/Scanner.java")):
         os.remove(os.path.join(os.getcwd(), "src/Scanner.java"))
-    subprocess.call(["jflex", "--nobak", "-d", "src", "src/jflex_spec.lex"])
+    # subprocess.call(["jflex", "--nobak", "-d", "src", "src/jflex_spec.lex"])
     bin_directory = os.path.join(os.getcwd(), "bin")
     if not os.path.exists(bin_directory):
         os.makedirs(bin_directory)
