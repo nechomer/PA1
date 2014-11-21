@@ -1,6 +1,6 @@
 package ic.parser;
 import ic.parser.LexicalError;
-
+/****************************************** Options ****************************************/
 %%
 %class Lexer
 %public
@@ -12,36 +12,32 @@ import ic.parser.LexicalError;
 %{
 	StringBuffer string = new StringBuffer();
 
-	// store line, column info when entering a new state
-	private int stateLine, stateCol;
+	// save the last line and column of state
+	private int lLine, lCol;
 
-	private int getCurrentLine() {
-		return yyline+1;
+	private void lastPos() {
+		lLine = yyline+1;
+		lCol = yycolumn+1;  
 	}
 
-	private int getCurrentColumn() {
-		return yycolumn+1;
+	// if flag == true => then use lastPos else currentPos
+	private Token token(int id, String tag, String value, boolean flag) {
+		if(flag)
+			return new Token(id,lLine,lCol,tag,value);
+		else
+			return new Token(id,yyline+1,yycolumn+1,tag,value);
 	}
 
-	private void savePos() {
-		stateLine = getCurrentLine();
-		stateCol = getCurrentColumn();  
-	}
-
-	// if restorePos is true, then use the previously saved line and column numbers.
-	private Token token(int id, String tag, String value, boolean restorePos) {
-		return new Token(id, restorePos ? stateLine : getCurrentLine(),
-				restorePos ? stateCol : getCurrentColumn(), tag, value); 
-	}
-
-	private void Error(String token, boolean restorePos) throws LexicalError {
-		throw new LexicalError(restorePos ? stateLine : getCurrentLine(), 
-				restorePos ? stateCol : getCurrentColumn(), token);
+	private void Error(String token, boolean flag) throws LexicalError {
+		if(flag)
+			throw new LexicalError(lLine,lCol,token);
+		else
+			throw new LexicalError(yyline+1,yycolumn+1,token);
 	}
 
 %}
 
-/****************************************** MACROS ****************************************/
+/****************************************** Macros ****************************************/
 LineTerminator = \r|\n|\r\n
 InputCharacter = [^\r\n]
 WhiteSpace     = {LineTerminator} | [ \t]
@@ -61,8 +57,7 @@ Keyword = ("class" | "extends" | "static" | "void" | "int" | "boolean" | "string
 Operator = ("[" | "]" | "(" | ")" | "." | "-" | "!" | "*" | "/" | "%" | "+" |
             "<" | "<=" | ">" | ">=" | "==" | "!=" | "&&" | "||" | "=")
 
-// StringCharacter: allowed ASCII codes between decimal 32 and 126 excluding " and \.
-// and the escape sequences: \", \\, \\t, \\n
+// StringCharacter:  ASCII codes incl 32 - 126 + " and \ + escape sequence: \", \\, \t, \n
 StringCharacter = ([\040-\041\043-\133\135-\176] | "\\\"" | "\\\\" | "\\t" | "\\n")
 
 Structure = [{};,]
@@ -70,7 +65,7 @@ Structure = [{};,]
 %state STRING, TRADITIONAL_COMMENT
 
 %%
-/****************************************** RULES ****************************************/
+/****************************************** Rules and Actions ****************************************/
 <YYINITIAL> {
 /* keywords */
 {Keyword}                      { return token(sym.OTHER_SYMBOL, yytext(), yytext(), false); }
@@ -83,7 +78,7 @@ Structure = [{};,]
 /* literals */
 0+ {DecIntegerLiteral}         { Error(yytext(), false); }
 {DecIntegerLiteral}            { return token(sym.INTEGER, "INTEGER", yytext(), false); }
-\"                             { savePos(); string.setLength(0); string.append("\""); yybegin(STRING); }
+\"                             { lastPos(); string.setLength(0); string.append("\""); yybegin(STRING); }
 
 /* operators */                                                 
 {Operator}                     { return token(sym.OTHER_SYMBOL, yytext(), yytext(), false); }
@@ -93,7 +88,7 @@ Structure = [{};,]
                                                                 
 /* comments */                                 
 {EndOfLineComment}             { /* ignore */ }         
-"/*"                           { savePos(); yybegin(TRADITIONAL_COMMENT); }     
+"/*"                           { lastPos(); yybegin(TRADITIONAL_COMMENT); }     
                                                                 
 /* whitespace */                                                
 {WhiteSpace}                   { /* ignore */ }

@@ -36,9 +36,8 @@ public class Main
 	public static void PrintToken(String token, String tag , int line , int column) {
 		System.out. println (token+"\t"+tag+"\t"+line+":"+column); 
 	}
-	
-	public static void PrintTokenError(String token, int line , int column) { 
-		System.err. println ("Error!\t"+token+"\t"+"\t"+line+":"+column);
+	public static void PrintTokenError(String errMsg) {
+		System.err. println ("Error!\t"+errMsg);
 	}
 	
 	public static void debug(String path) {
