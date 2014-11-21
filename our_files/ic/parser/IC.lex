@@ -1,6 +1,6 @@
 package ic.parser;
 import ic.parser.LexicalError;
-/****************************************** Options ****************************************/
+/*********** Definitions ***********/
 %%
 %class Lexer
 %public
@@ -15,9 +15,17 @@ import ic.parser.LexicalError;
 	// save the last line and column of state
 	private int lLine, lCol;
 
+	private int getCurrentLine() {
+		return yyline+1;
+	}
+
+	private int getCurrentColumn() {
+		return yycolumn+1;
+	}
+
 	private void lastPos() {
-		lLine = yyline+1;
-		lCol = yycolumn+1;  
+		lLine = getCurrentLine();
+		lCol = getCurrentColumn();  
 	}
 
 	// if flag == true => then use lastPos else currentPos
@@ -25,24 +33,25 @@ import ic.parser.LexicalError;
 		if(flag)
 			return new Token(id,lLine,lCol,tag,value);
 		else
-			return new Token(id,yyline+1,yycolumn+1,tag,value);
+			return new Token(id,getCurrentLine(),getCurrentColumn(),tag,value);
 	}
 
 	private void Error(String token, boolean flag) throws LexicalError {
 		if(flag)
 			throw new LexicalError(lLine,lCol,token);
 		else
-			throw new LexicalError(yyline+1,yycolumn+1,token);
+			throw new LexicalError(getCurrentLine(),getCurrentColumn(),token);
 	}
 
 %}
 
-/****************************************** Macros ****************************************/
+/******** Macros *********/
+
 LineTerminator = \r|\n|\r\n
 InputCharacter = [^\r\n]
 WhiteSpace     = {LineTerminator} | [ \t]
 
-EndOfLineComment     = "//" {InputCharacter}* {LineTerminator}
+LineComment     = "//" {InputCharacter}* {LineTerminator}
 
 IdentifierCharacter = [a-zA-Z0-9_]
 ClassIdentifier = [A-Z]{IdentifierCharacter}*
@@ -65,7 +74,9 @@ Structure = [{};,]
 %state STRING, TRADITIONAL_COMMENT
 
 %%
-/****************************************** Rules and Actions ****************************************/
+
+/********* Rules and Actions **********/
+
 <YYINITIAL> {
 /* keywords */
 {Keyword}                      { return token(sym.OTHER_SYMBOL, yytext(), yytext(), false); }
@@ -87,7 +98,7 @@ Structure = [{};,]
 {Structure}                    { return token(sym.OTHER_SYMBOL, yytext(), yytext(), false); }
                                                                 
 /* comments */                                 
-{EndOfLineComment}             { /* ignore */ }         
+{LineComment}             		   { /* ignore */ }         
 "/*"                           { lastPos(); yybegin(TRADITIONAL_COMMENT); }     
                                                                 
 /* whitespace */                                                
